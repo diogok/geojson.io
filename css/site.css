@@ -377,12 +377,32 @@ textarea.full-width {
     margin-right:5px;
 }
 
-.share, .download {
+.share, .download, .forward {
     position:absolute;
     right:40%;
     top:40px;
     background:#fff;
     font-size:12px;
+}
+
+.forward .icon-remove {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.forward input, .forward select {
+    padding: 5px;
+    width: 350px;
+    border: 1px #ccc solid;
+    margin-right: 5px;
+}
+
+.forward select {
+    width: auto;
+}
+
+.forward form {
+    display: inline-block;
 }
 
 .share .network, .download .action {

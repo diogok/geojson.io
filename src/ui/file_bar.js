@@ -4,6 +4,7 @@ var share = require('./share'),
     download = require('./download'),
     zoomextent = require('../lib/zoomextent'),
     readFile = require('../lib/readfile'),
+    forward = require('./forward'),
     saver = require('../ui/saver.js');
 
 module.exports = function fileBar(context) {
@@ -42,6 +43,12 @@ module.exports = function fileBar(context) {
             icon: 'icon-download',
             action: function() {
                 context.container.call(download(context));
+            }
+        },{
+            title: 'Forward',
+            icon: 'icon-external-link',
+            action: function(){
+                context.container.call(forward(context));
             }
         }, {
             title: 'Share',
