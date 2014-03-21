@@ -7,6 +7,7 @@ var ui = require('./ui'),
     repo = require('./core/repo'),
     user = require('./core/user'),
     api = require('./core/api'),
+    config = require("./config"),
     store = require('store');
 
 var gjIO = geojsonIO(),
@@ -21,6 +22,7 @@ api(gjIO);
 
 function geojsonIO() {
     var context = {};
+    context.config = config(location.hostname);
     context.dispatch = d3.dispatch('change', 'route');
     context.storage = store;
     context.map = map(context);
