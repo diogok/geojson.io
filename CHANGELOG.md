@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2014-05-23
+
+* Fix non-anonymous gist editing.
+
+## 2014-05-16
+
+* Moves input and output UIs to modals so that the right sidebar isn't overloaded
+* Visual cleanup: fewer icons, more map
+* Removes geocoding UI
+
 ## 2013-12-10
 
 * Support for downloading points as DSV
