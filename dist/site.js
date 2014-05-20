@@ -19421,7 +19421,7 @@ module.exports = function(hostname) {
     var cfg = config[env];
 
     var params = (location.search+"&"+location.hash.substring(1)).split("&")
-                    .map(function(p) { return p.match(/([\w]+)=([\w]+)/);})
+                    .map(function(p) { return p.match(/([\w]+)=([^&]+)/);})
                     .filter(function(p) { return p != null && p.length==3;})
                     .map(function(p) { return p.slice(1);});
     for(var i=0;i<params.length;i++) {
@@ -19431,12 +19431,22 @@ module.exports = function(hostname) {
             else if(value=='false') value=false;
             else if(!isNaN(parseFloat(value))) value=parseFloat(value);
             else if(!isNaN(parseInt(value))) value=parseInt(value);
+            else value = decodeURIComponent(value);
             cfg[key] = value;
         }
     }
 
+    cfg.feature = function(name) {
+        if(cfg['deny']) {
+            return cfg[name] === true;
+        } else {
+            return typeof cfg["no"+name] == 'undefined';
+        }
+    };
+
     return cfg;
 };
+
 
 },{}],108:[function(require,module,exports){
 module.exports = api;
@@ -19731,6 +19741,7 @@ module.exports = function(context) {
 },{"../source/gist":125,"../source/github":126,"../source/local":127,"clone":12,"xtend":102}],110:[function(require,module,exports){
 var qs = require('qs-hash'),
     zoomextent = require('../lib/zoomextent'),
+    config = require('../config'),
     flash = require('../ui/flash');
 
 module.exports = function(context) {
@@ -19788,7 +19799,7 @@ module.exports = function(context) {
     }
 
     return function(query) {
-        if (!query.id && !query.data) return;
+        if (!query.id && !query.data && !context.config.url) return;
 
         var oldRoute = d3.event ? qs.stringQs(d3.event.oldURL.split('#')[1]).id :
             context.data.get('route');
@@ -19805,11 +19816,16 @@ module.exports = function(context) {
         } else if (query.id !== oldRoute) {
             context.container.select('.map').classed('loading', true);
             context.data.fetch(query, success);
+        } 
+
+        if(context.config.url) {
+            console.log(context.config.url);
+            loadUrl(context.config.url);
         }
     };
 };
 
-},{"../lib/zoomextent":121,"../ui/flash":131,"qs-hash":31}],111:[function(require,module,exports){
+},{"../config":107,"../lib/zoomextent":121,"../ui/flash":131,"qs-hash":31}],111:[function(require,module,exports){
 var zoomextent = require('../lib/zoomextent'),
     qs = require('qs-hash');
 
@@ -20849,6 +20865,7 @@ var buttons = require('./ui/mode_buttons'),
     file_bar = require('./ui/file_bar'),
     dnd = require('./ui/dnd'),
     userUi = require('./ui/user'),
+    config = require('./config'),
     layer_switch = require('./ui/layer_switch');
 
 module.exports = ui;
@@ -20904,10 +20921,12 @@ function ui(context) {
             .append('div')
             .attr('class', 'pane');
 
-        top
-            .append('div')
-            .attr('class', 'user fr pad1 deemphasize')
-            .call(userUi(context));
+        if(context.config.feature('user')) {
+            top
+                .append('div')
+                .attr('class', 'user fr pad1 deemphasize')
+                .call(userUi(context));
+        }
 
         top
             .append('div')
@@ -20929,7 +20948,7 @@ function ui(context) {
     };
 }
 
-},{"./ui/dnd":129,"./ui/file_bar":130,"./ui/layer_switch":133,"./ui/mode_buttons":137,"./ui/user":140}],129:[function(require,module,exports){
+},{"./config":107,"./ui/dnd":129,"./ui/file_bar":130,"./ui/layer_switch":133,"./ui/mode_buttons":137,"./ui/user":140}],129:[function(require,module,exports){
 var readDrop = require('../lib/readfile.js').readDrop,
     flash = require('./flash.js'),
     zoomextent = require('../lib/zoomextent');
@@ -20989,6 +21008,7 @@ var share = require('./share'),
     zoomextent = require('../lib/zoomextent'),
     readFile = require('../lib/readfile'),
     forward = require('./forward'),
+    config = require('../config'),
     saver = require('../ui/saver.js');
 
 /**
@@ -21023,64 +21043,73 @@ module.exports = function fileBar(context) {
 
     function bar(selection) {
 
-        var actions = [{
-            title: 'Open',
-            children: [
-                {
-                    title: 'File',
-                    alt: 'CSV, KML, GPX, and other filetypes',
-                    action: blindImport
-                }, {
-                    title: 'GitHub',
-                    alt: 'GeoJSON files in GitHub Repositories',
-                    authenticated: true,
-                    action: clickGitHubOpen
-                }, {
-                    title: 'Gist',
-                    alt: 'GeoJSON files in GitHub Gists',
-                    authenticated: true,
-                    action: clickGist
+        var actions = []
+
+        if(context.config.feature('open'))
+            actions.push( {
+                title: 'Open',
+                children: [
+                    {
+                        title: 'File',
+                        alt: 'CSV, KML, GPX, and other filetypes',
+                        action: blindImport
+                    }, {
+                        title: 'GitHub',
+                        alt: 'GeoJSON files in GitHub Repositories',
+                        authenticated: true,
+                        action: clickGitHubOpen
+                    }, {
+                        title: 'Gist',
+                        alt: 'GeoJSON files in GitHub Gists',
+                        authenticated: true,
+                        action: clickGist
+                    }
+                ]
+            });
+
+        if(context.config.feature('save'))
+            actions.push( {
+                title: 'Save',
+                action: saveAction,
+                children: [
+                    {
+                        title: 'GitHub',
+                        alt: 'GeoJSON files in GitHub Repositories',
+                        authenticated: true,
+                        action: clickGitHubSave
+                    }, {
+                        title: 'Gist',
+                        alt: 'GeoJSON files in GitHub Gists',
+                        authenticated: true,
+                        action: clickGistSave
+                    }
+                ].concat(exportFormats)
+            });
+
+        if(context.config.feature('new'))
+            actions.push( {
+                title: 'New',
+                action: function() {
+                    window.open('/#new');
                 }
-            ]
-        }, {
-            title: 'Save',
-            action: saveAction,
-            children: [
-                {
-                    title: 'GitHub',
-                    alt: 'GeoJSON files in GitHub Repositories',
-                    authenticated: true,
-                    action: clickGitHubSave
-                }, {
-                    title: 'Gist',
-                    alt: 'GeoJSON files in GitHub Gists',
-                    authenticated: true,
-                    action: clickGistSave
+            });
+
+        if(context.config.feature('forward'))
+            actions.push( {
+                title: 'Forward',
+                icon: 'icon-external-link',
+                action: function(){
+                    context.container.call(forward(context));
                 }
-            ].concat(exportFormats)
-        }, {
-            title: 'New',
-            action: function() {
-                window.open('/#new');
-            }
-        }, {
-            title: 'Download',
-            icon: 'icon-download',
-            action: function() {
-                context.container.call(download(context));
-            }
-        },{
-            title: 'Forward',
-            icon: 'icon-external-link',
-            action: function(){
-                context.container.call(forward(context));
-            }
-        }, {
-            title: 'Share',
-            action: function() {
-                context.container.call(share(context));
-            }
-        }];
+            });
+
+        if(context.config.feature('share'))
+            actions.push( {
+                title: 'Share',
+                action: function() {
+                    context.container.call(share(context));
+                }
+            });
 
         var items = selection.append('div')
             .attr('class', 'inline')
@@ -21381,7 +21410,7 @@ module.exports = function fileBar(context) {
     return bar;
 };
 
-},{"../lib/readfile":118,"../lib/zoomextent":121,"../ui/saver.js":138,"./flash":131,"./forward":132,"./modal.js":136,"./share":139,"clone":12,"filesaver.js":17,"geojson2dsv":18,"gist-map-browser":22,"github-file-browser":24,"shp-write":32,"tokml":68,"topojson":"BOmyIj"}],131:[function(require,module,exports){
+},{"../config":107,"../lib/readfile":118,"../lib/zoomextent":121,"../ui/saver.js":138,"./flash":131,"./forward":132,"./modal.js":136,"./share":139,"clone":12,"filesaver.js":17,"geojson2dsv":18,"gist-map-browser":22,"github-file-browser":24,"shp-write":32,"tokml":68,"topojson":"BOmyIj"}],131:[function(require,module,exports){
 var message = require('./message');
 
 module.exports = flash;
@@ -21778,6 +21807,7 @@ module.exports = function modal(selection, blocking) {
 },{}],137:[function(require,module,exports){
 var table = require('../panel/table'),
     json = require('../panel/json'),
+    config = require('../config.js')
     help = require('../panel/help');
 
 module.exports = function(context, pane) {
@@ -21785,22 +21815,31 @@ module.exports = function(context, pane) {
 
         var mode = null;
 
-        var buttonData = [{
+        var buttonData = []
+        
+        if(context.config.feature("code"))
+        buttonData.push({
             icon: 'code',
             title: ' JSON',
             alt: 'JSON Source',
             behavior: json
-        }, {
+        });
+
+        if(context.config.feature("table"))
+        buttonData.push({ 
             icon: 'table',
             title: ' Table',
             alt: 'Edit feature properties in a table',
             behavior: table
-        }, {
+        });
+
+        if(context.config.feature("question"))
+        buttonData.push({ 
             icon: 'question',
             title: ' Help',
             alt: 'Help',
             behavior: help
-        }];
+        });
 
         var buttons = selection
             .selectAll('button')
@@ -21827,7 +21866,7 @@ module.exports = function(context, pane) {
     };
 };
 
-},{"../panel/help":122,"../panel/json":123,"../panel/table":124}],138:[function(require,module,exports){
+},{"../config.js":107,"../panel/help":122,"../panel/json":123,"../panel/table":124}],138:[function(require,module,exports){
 var flash = require('./flash');
 
 module.exports = function(context) {

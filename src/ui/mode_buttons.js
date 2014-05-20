@@ -1,5 +1,6 @@
 var table = require('../panel/table'),
     json = require('../panel/json'),
+    config = require('../config.js')
     help = require('../panel/help');
 
 module.exports = function(context, pane) {
@@ -7,22 +8,31 @@ module.exports = function(context, pane) {
 
         var mode = null;
 
-        var buttonData = [{
+        var buttonData = []
+        
+        if(context.config.feature("code"))
+        buttonData.push({
             icon: 'code',
             title: ' JSON',
             alt: 'JSON Source',
             behavior: json
-        }, {
+        });
+
+        if(context.config.feature("table"))
+        buttonData.push({ 
             icon: 'table',
             title: ' Table',
             alt: 'Edit feature properties in a table',
             behavior: table
-        }, {
+        });
+
+        if(context.config.feature("question"))
+        buttonData.push({ 
             icon: 'question',
             title: ' Help',
             alt: 'Help',
             behavior: help
-        }];
+        });
 
         var buttons = selection
             .selectAll('button')

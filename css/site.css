@@ -342,7 +342,7 @@ textarea.full-width {
 
 .share, .download, .forward {
     position:absolute;
-    right:40%;
+    left:40%;
     top:40px;
     background:#fff;
     font-size:12px;

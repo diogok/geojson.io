@@ -1,5 +1,6 @@
 var qs = require('qs-hash'),
     zoomextent = require('../lib/zoomextent'),
+    config = require('../config'),
     flash = require('../ui/flash');
 
 module.exports = function(context) {
@@ -57,7 +58,7 @@ module.exports = function(context) {
     }
 
     return function(query) {
-        if (!query.id && !query.data) return;
+        if (!query.id && !query.data && !context.config.url) return;
 
         var oldRoute = d3.event ? qs.stringQs(d3.event.oldURL.split('#')[1]).id :
             context.data.get('route');
@@ -74,6 +75,11 @@ module.exports = function(context) {
         } else if (query.id !== oldRoute) {
             context.container.select('.map').classed('loading', true);
             context.data.fetch(query, success);
+        } 
+
+        if(context.config.url) {
+            console.log(context.config.url);
+            loadUrl(context.config.url);
         }
     };
 };

@@ -20,7 +20,7 @@ module.exports = function(hostname) {
     var cfg = config[env];
 
     var params = (location.search+"&"+location.hash.substring(1)).split("&")
-                    .map(function(p) { return p.match(/([\w]+)=([\w]+)/);})
+                    .map(function(p) { return p.match(/([\w]+)=([^&]+)/);})
                     .filter(function(p) { return p != null && p.length==3;})
                     .map(function(p) { return p.slice(1);});
     for(var i=0;i<params.length;i++) {
@@ -30,9 +30,19 @@ module.exports = function(hostname) {
             else if(value=='false') value=false;
             else if(!isNaN(parseFloat(value))) value=parseFloat(value);
             else if(!isNaN(parseInt(value))) value=parseInt(value);
+            else value = decodeURIComponent(value);
             cfg[key] = value;
         }
     }
 
+    cfg.feature = function(name) {
+        if(cfg['deny']) {
+            return cfg[name] === true;
+        } else {
+            return typeof cfg["no"+name] == 'undefined';
+        }
+    };
+
     return cfg;
 };
+

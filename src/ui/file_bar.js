@@ -13,6 +13,7 @@ var share = require('./share'),
     zoomextent = require('../lib/zoomextent'),
     readFile = require('../lib/readfile'),
     forward = require('./forward'),
+    config = require('../config'),
     saver = require('../ui/saver.js');
 
 /**
@@ -47,64 +48,73 @@ module.exports = function fileBar(context) {
 
     function bar(selection) {
 
-        var actions = [{
-            title: 'Open',
-            children: [
-                {
-                    title: 'File',
-                    alt: 'CSV, KML, GPX, and other filetypes',
-                    action: blindImport
-                }, {
-                    title: 'GitHub',
-                    alt: 'GeoJSON files in GitHub Repositories',
-                    authenticated: true,
-                    action: clickGitHubOpen
-                }, {
-                    title: 'Gist',
-                    alt: 'GeoJSON files in GitHub Gists',
-                    authenticated: true,
-                    action: clickGist
+        var actions = []
+
+        if(context.config.feature('open'))
+            actions.push( {
+                title: 'Open',
+                children: [
+                    {
+                        title: 'File',
+                        alt: 'CSV, KML, GPX, and other filetypes',
+                        action: blindImport
+                    }, {
+                        title: 'GitHub',
+                        alt: 'GeoJSON files in GitHub Repositories',
+                        authenticated: true,
+                        action: clickGitHubOpen
+                    }, {
+                        title: 'Gist',
+                        alt: 'GeoJSON files in GitHub Gists',
+                        authenticated: true,
+                        action: clickGist
+                    }
+                ]
+            });
+
+        if(context.config.feature('save'))
+            actions.push( {
+                title: 'Save',
+                action: saveAction,
+                children: [
+                    {
+                        title: 'GitHub',
+                        alt: 'GeoJSON files in GitHub Repositories',
+                        authenticated: true,
+                        action: clickGitHubSave
+                    }, {
+                        title: 'Gist',
+                        alt: 'GeoJSON files in GitHub Gists',
+                        authenticated: true,
+                        action: clickGistSave
+                    }
+                ].concat(exportFormats)
+            });
+
+        if(context.config.feature('new'))
+            actions.push( {
+                title: 'New',
+                action: function() {
+                    window.open('/#new');
                 }
-            ]
-        }, {
-            title: 'Save',
-            action: saveAction,
-            children: [
-                {
-                    title: 'GitHub',
-                    alt: 'GeoJSON files in GitHub Repositories',
-                    authenticated: true,
-                    action: clickGitHubSave
-                }, {
-                    title: 'Gist',
-                    alt: 'GeoJSON files in GitHub Gists',
-                    authenticated: true,
-                    action: clickGistSave
+            });
+
+        if(context.config.feature('forward'))
+            actions.push( {
+                title: 'Forward',
+                icon: 'icon-external-link',
+                action: function(){
+                    context.container.call(forward(context));
                 }
-            ].concat(exportFormats)
-        }, {
-            title: 'New',
-            action: function() {
-                window.open('/#new');
-            }
-        }, {
-            title: 'Download',
-            icon: 'icon-download',
-            action: function() {
-                context.container.call(download(context));
-            }
-        },{
-            title: 'Forward',
-            icon: 'icon-external-link',
-            action: function(){
-                context.container.call(forward(context));
-            }
-        }, {
-            title: 'Share',
-            action: function() {
-                context.container.call(share(context));
-            }
-        }];
+            });
+
+        if(context.config.feature('share'))
+            actions.push( {
+                title: 'Share',
+                action: function() {
+                    context.container.call(share(context));
+                }
+            });
 
         var items = selection.append('div')
             .attr('class', 'inline')
